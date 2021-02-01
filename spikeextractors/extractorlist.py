@@ -34,6 +34,8 @@ from .extractors.combinatosortingextractor import CombinatoSortingExtractor
 from .extractors.alfsortingextractor import ALFSortingExtractor
 from .extractors.cedextractors import CEDRecordingExtractor
 from .extractors.cellexplorersortingextractor import CellExplorerSortingExtractor
+from .extractors.CHIMErecordingextractor.CHIMErecordingextractor import CHIMERecordingExtractor
+
 
 recording_extractor_full_list = [
     MdaRecordingExtractor,
@@ -62,6 +64,9 @@ recording_extractor_full_list = [
     NeuralynxRecordingExtractor,
     BlackrockRecordingExtractor,
     MCSRawRecordingExtractor,
+
+    # Tom based
+    CHIMERecordingExtractor,
 ]
 
 recording_extractor_dict = {recording_class.extractor_name: recording_class
