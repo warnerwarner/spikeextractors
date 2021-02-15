@@ -3,11 +3,20 @@ from spikeextractors.extraction_tools import check_get_traces_args
 import numpy as np
 from pathlib import Path
 
+
 try:
     import h5py
     HAVE_CHIME = True
 except ImportError:
     HAVE_CHIME = False
+
+try:
+    sys.path.append('/home/camp/warnert')
+    import chimpy
+    HAVE_CHIMPY = True
+    print('Found CHIMPY!')
+except ImportError:
+    HAVE_CHIMPY = False
 
 class CHIMERecordingExtractor(RecordingExtractor):
     extractor_name = 'CHIMERecording'
@@ -24,8 +33,12 @@ class CHIMERecordingExtractor(RecordingExtractor):
         self._fid, self._num_chans, self._num_Frames, self._chan_poses = openCHIMEFile(
             file_path, verbose=verbose, sampling_rate=sampling_rate)
         self._read_function = readHDF5
+        self._chan_ids = range(len(self._num_chans))
         RecordingExtractor.__init__(self)
-        self.is_filtered = True
+        if '.filt.' in self._recording_file:
+            self.is_filtered = True
+        else:
+            self.is_filtered = False
         self.set_channel_locations(self._chan_poses)
         self._kwargs = {"file_path": str(Path(file_path).absolute()), 'verbose':verbose}
 
@@ -43,8 +56,20 @@ class CHIMERecordingExtractor(RecordingExtractor):
     
     @check_get_traces_args
     def get_traces(self, channel_ids=None, start_frame=None, end_frame=None):
-        data = self._read_function(self._fid, start_frame, end_frame)
+        data = self._read_function(self._fid, start_frame, end_frame, chans=self._chan_ids)
         return data[channel_ids]
+    
+    def make_chimpy_recording(self):
+        self._chimpy_recording = chimpy.recording.Recording(self._recording_file)
+    
+    def update_channels(self):
+        self._chimpy_recording.remove_satured()
+        self._chimpy_recording.remoce_broken()
+        self._num_chans = len(self._chimpy_recording.channels)
+        xs = self._chimpy_recording.xs
+        ys = self._chimpy_recording.ys
+        self._chan_poses = [(i, j) for i, j in zip(xs, ys)]
+        self._chan_ids = self._chimpy_recording.channels
 
 
 def openCHIMEFile(filename, verbose=False, sampling_rate=20000):
@@ -60,5 +85,8 @@ def openCHIMEFile(filename, verbose=False, sampling_rate=20000):
         print('# length of recording', numFrames/sampling_rate)
 
     return (fid, numChans, numFrames, chan_poses)
-def readHDF5(fid, t0, t1):
-    return fid['sig'][:, t0:t1]
+def readHDF5(fid, t0, t1, chans=None):
+    if chans is None:
+        return fid['sig'][:, t0:t1]
+    else:
+        return fid['sig'][chans, t0:t1]
