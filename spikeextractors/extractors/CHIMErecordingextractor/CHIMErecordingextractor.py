@@ -2,6 +2,7 @@ from spikeextractors import RecordingExtractor
 from spikeextractors.extraction_tools import check_get_traces_args
 import numpy as np
 from pathlib import Path
+import sys
 
 
 try:
